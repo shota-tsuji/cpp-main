@@ -7,9 +7,10 @@ def main():
     """Minimal jobshop problem."""
     # Data.
     jobs_data = [  # task = (machine_id, processing_time).
-        [(0, 3), (1, 2), (2, 2)],  # Job0
-        [(0, 2), (2, 1), (1, 4)],  # Job1
-        [(1, 4), (2, 3)]  # Job2
+        [(0, 2), (1, 3)],  # Job0
+        [(0, 1), (1, 5)],  # Job1
+        [(0, 1), (1, 3)],
+        [(0, 1), (2, 1)]
     ]
 
     machines_count = 1 + max(task[0] for job in jobs_data for task in job)
@@ -29,6 +30,7 @@ def main():
     # Creates job intervals and add to the corresponding machine lists.
     all_tasks = {}
     machine_to_intervals = collections.defaultdict(list)
+    machine_1_intervals = []
 
     for job_id, job in enumerate(jobs_data):
         for task_id, task in enumerate(job):
@@ -43,16 +45,22 @@ def main():
                                                    end=end_var,
                                                    interval=interval_var)
             machine_to_intervals[machine].append(interval_var)
+            if machine == 1:
+                machine_1_intervals.append(interval_var)
 
     # Create and add disjunctive constraints.
     for machine in all_machines:
-        model.AddNoOverlap(machine_to_intervals[machine])
+        if machine != 1:
+            model.AddNoOverlap(machine_to_intervals[machine])
 
     # Precedences inside a job.
     for job_id, job in enumerate(jobs_data):
         for task_id in range(len(job) - 1):
             model.Add(all_tasks[job_id, task_id +
                                 1].start >= all_tasks[job_id, task_id].end)
+    # Capacity of resources used simmultaneously
+    demands = [1 for _ in range(len(machine_1_intervals))]
+    model.AddCumulative(machine_1_intervals, demands, 2)
 
     # Makespan objective.
     obj_var = model.NewIntVar(0, horizon, 'makespan')
