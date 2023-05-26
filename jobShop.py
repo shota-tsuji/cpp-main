@@ -17,6 +17,18 @@ class Resource:
         self.resource_id = resource_id
         self.amount = amount
 
+class StepOutput:
+
+    def __init__(self, recipe_id, step_id, duration, resource_id, start_time):
+        self.recipe_id = recipe_id
+        self.step_id = step_id
+        self.duration = duration
+        self.resource_id = resource_id
+        self.start_time = start_time
+
+    def to_string(self):
+        end_time = self.start_time + self.duration
+        return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}])'
 
 def main():
     resources = [
@@ -98,45 +110,53 @@ def main():
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Solution:')
-        # Create one list of assigned tasks per machine.
-        assigned_jobs = collections.defaultdict(list)
+
+        # recipe_lists と variable.start の組み合わせがとりたい
         for recipe_id, recipe in enumerate(recipe_lists):
             for step_id, step in enumerate(recipe):
-                assigned_jobs[step.resource_id].append(
-                    assigned_task_type(start=solver.Value(
-                        all_steps[recipe_id, step_id].start),
-                                       job=recipe_id,
-                                       index=step_id,
-                                       duration=step.duration))
+                start_time = solver.Value(all_steps[recipe_id, step_id].start)
+                step_output = StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time)
+                print(step_output.to_string())
 
-        # Create per machine output lines.
-        output = ''
-        for machine in all_machines:
-            # Sort by starting time.
-            assigned_jobs[machine].sort()
-            sol_line_tasks = 'Machine ' + str(machine) + ': '
-            sol_line = '           '
+        # Create one list of assigned tasks per machine.
+        #assigned_jobs = collections.defaultdict(list)
+        #for recipe_id, recipe in enumerate(recipe_lists):
+        #    for step_id, step in enumerate(recipe):
+        #        assigned_jobs[step.resource_id].append(
+        #            assigned_task_type(start=solver.Value(
+        #                all_steps[recipe_id, step_id].start),
+        #                               job=recipe_id,
+        #                               index=step_id,
+        #                               duration=step.duration))
 
-            for assigned_task in assigned_jobs[machine]:
-                name = 'job_%i_task_%i' % (assigned_task.job,
-                                           assigned_task.index)
-                # Add spaces to output to align columns.
-                sol_line_tasks += '%-15s' % name
+        ## Create per machine output lines.
+        #output = ''
+        #for machine in all_machines:
+        #    # Sort by starting time.
+        #    assigned_jobs[machine].sort()
+        #    sol_line_tasks = 'Machine ' + str(machine) + ': '
+        #    sol_line = '           '
 
-                start = assigned_task.start
-                duration = assigned_task.duration
-                sol_tmp = '[%i,%i]' % (start, start + duration)
-                # Add spaces to output to align columns.
-                sol_line += '%-15s' % sol_tmp
+        #    for assigned_task in assigned_jobs[machine]:
+        #        name = 'job_%i_task_%i' % (assigned_task.job,
+        #                                   assigned_task.index)
+        #        # Add spaces to output to align columns.
+        #        sol_line_tasks += '%-15s' % name
 
-            sol_line += '\n'
-            sol_line_tasks += '\n'
-            output += sol_line_tasks
-            output += sol_line
+        #        start = assigned_task.start
+        #        duration = assigned_task.duration
+        #        sol_tmp = '[%i,%i]' % (start, start + duration)
+        #        # Add spaces to output to align columns.
+        #        sol_line += '%-15s' % sol_tmp
+
+        #    sol_line += '\n'
+        #    sol_line_tasks += '\n'
+        #    output += sol_line_tasks
+        #    output += sol_line
 
         # Finally print the solution found.
         print(f'Optimal Schedule Length: {solver.ObjectiveValue()}')
-        print(output)
+        #print(output)
     else:
         print('No solution found.')
 
