@@ -50,29 +50,29 @@ def main():
 
     # Creates job intervals and add to the corresponding machine lists.
     all_tasks = {}
-    machine_to_intervals = collections.defaultdict(list)
+    resource_intervals = collections.defaultdict(list)
 
-    for job_id, job in enumerate(recipes_data):
-        for task_id, task in enumerate(job):
-            machine = task[0]
-            duration = task[1]
-            suffix = '_%i_%i' % (job_id, task_id)
+    for recipe_id, recipe in enumerate(recipe_lists):
+        for step_id, step in enumerate(recipe):
+            suffix = f'_{recipe_id}_{step_id}'
             start_var = model.NewIntVar(0, horizon, 'start' + suffix)
             end_var = model.NewIntVar(0, horizon, 'end' + suffix)
-            interval_var = model.NewIntervalVar(start_var, duration, end_var,
+            interval_var = model.NewIntervalVar(start_var, step.duration, end_var,
                                                 'interval' + suffix)
-            all_tasks[job_id, task_id] = task_type(start=start_var,
+            all_tasks[recipe_id, step_id] = task_type(start=start_var,
                                                    end=end_var,
                                                    interval=interval_var)
-            machine_to_intervals[machine].append(interval_var)
+            resource_intervals[step.resource_id].append(interval_var)
 
     # Disjunctive constraint 0: Resource capacity
     for resource in resources:
+        intervals = resource_intervals[resource.resource_id]
         if resource.amount == 1: #Each resource use does not overlap if its amount is one.
-            model.AddNoOverlap(machine_to_intervals[resource.resource_id])
+            model.AddNoOverlap(intervals)
         else: # Capacity of resources used simultaneously
-            demands = [1 for _ in range(len(machine_to_intervals[resource.resource_id]))]
-            model.AddCumulative(machine_to_intervals[resource.resource_id], demands, resource.amount)
+            # Each interval requires one resource in its duration.
+            demands = [1] * len(intervals)
+            model.AddCumulative(intervals, demands, resource.amount)
 
     # Precedences inside a job.
     for job_id, job in enumerate(recipes_data):
