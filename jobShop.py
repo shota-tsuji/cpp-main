@@ -37,7 +37,7 @@ def main():
 
     all_machines = range(len(resources))
     # Computes horizon dynamically as the sum of all durations.
-    horizon = sum(task[1] for job in recipes_data for task in job)
+    horizon = sum(step.duration for recipe in recipe_lists for step in recipe)
 
     # Create the model.
     model = cp_model.CpModel()
@@ -49,7 +49,7 @@ def main():
                                                 'start job index duration')
 
     # Creates job intervals and add to the corresponding machine lists.
-    all_tasks = {}
+    all_steps = {}
     resource_intervals = collections.defaultdict(list)
 
     for recipe_id, recipe in enumerate(recipe_lists):
@@ -59,7 +59,7 @@ def main():
             end_var = model.NewIntVar(0, horizon, 'end' + suffix)
             interval_var = model.NewIntervalVar(start_var, step.duration, end_var,
                                                 'interval' + suffix)
-            all_tasks[recipe_id, step_id] = task_type(start=start_var,
+            all_steps[recipe_id, step_id] = task_type(start=start_var,
                                                    end=end_var,
                                                    interval=interval_var)
             resource_intervals[step.resource_id].append(interval_var)
@@ -74,17 +74,21 @@ def main():
             demands = [1] * len(intervals)
             model.AddCumulative(intervals, demands, resource.amount)
 
+    print(all_steps)
+
     # Precedences inside a job.
     for job_id, job in enumerate(recipes_data):
         for task_id in range(len(job) - 1):
-            model.Add(all_tasks[job_id, task_id +
-                                1].start >= all_tasks[job_id, task_id].end)
+            model.Add(all_steps[job_id, task_id +
+                                1].start >= all_steps[job_id, task_id].end)
 
     # Makespan objective.
     obj_var = model.NewIntVar(0, horizon, 'makespan')
     model.AddMaxEquality(obj_var, [
-        all_tasks[job_id, len(job) - 1].end
-        for job_id, job in enumerate(recipes_data)
+        # fix on d0 as recipe_id ex. (0, ?) -> (start, end, interval)
+        # レシピごとに一番最後の工程の tuple の end を見ている
+        all_steps[recipe_id, len(recipe) - 1].end
+        for recipe_id, recipe in enumerate(recipe_lists)
     ])
     model.Minimize(obj_var)
 
@@ -100,7 +104,7 @@ def main():
             for step_id, step in enumerate(recipe):
                 assigned_jobs[step.resource_id].append(
                     assigned_task_type(start=solver.Value(
-                        all_tasks[recipe_id, step_id].start),
+                        all_steps[recipe_id, step_id].start),
                                        job=recipe_id,
                                        index=step_id,
                                        duration=step.duration))
