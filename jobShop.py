@@ -110,13 +110,11 @@ def main():
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Solution:')
-
         # recipe_lists と variable.start の組み合わせがとりたい
-        for recipe_id, recipe in enumerate(recipe_lists):
-            for step_id, step in enumerate(recipe):
-                start_time = solver.Value(all_steps[recipe_id, step_id].start)
-                step_output = StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time)
-                print(step_output.to_string())
+        step_outputs = get_step_outputs(solver, all_steps, recipe_lists)
+        #print(list(map(lambda s: s.to_string(), step_outputs)))
+        for step_output in step_outputs:
+            print(step_output.to_string())
 
         print(f'Optimal Schedule Length: {solver.ObjectiveValue()}')
     else:
@@ -128,6 +126,14 @@ def main():
     print('  - branches : %i' % solver.NumBranches())
     print('  - wall time: %f s' % solver.WallTime())
 
+def get_step_outputs(solver, all_steps, recipe_lists):
+    step_outputs = []
+    for recipe_id, recipe in enumerate(recipe_lists):
+        for step_id, step in enumerate(recipe):
+            start_time = solver.Value(all_steps[recipe_id, step_id].start)
+            step_outputs.append(StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time))
+
+    return step_outputs
 
 if __name__ == '__main__':
     main()
