@@ -30,6 +30,10 @@ def main():
         [(0, 1), (1, 4)],  # recipe0
         [(0, 1), (1, 2)],  # recipe1
     ]
+    recipe_lists = [
+        [RecipeStep(0, 10, 1, 0, 1), RecipeStep(0, 11, 4, 1, 2)],
+        [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)]
+    ]
 
     all_machines = range(len(resources))
     # Computes horizon dynamically as the sum of all durations.
@@ -95,15 +99,14 @@ def main():
         print('Solution:')
         # Create one list of assigned tasks per machine.
         assigned_jobs = collections.defaultdict(list)
-        for job_id, job in enumerate(recipes_data):
-            for task_id, task in enumerate(job):
-                machine = task[0]
-                assigned_jobs[machine].append(
+        for recipe_id, recipe in enumerate(recipe_lists):
+            for step_id, step in enumerate(recipe):
+                assigned_jobs[step.resource_id].append(
                     assigned_task_type(start=solver.Value(
-                        all_tasks[job_id, task_id].start),
-                                       job=job_id,
-                                       index=task_id,
-                                       duration=task[1]))
+                        all_tasks[recipe_id, step_id].start),
+                                       job=recipe_id,
+                                       index=step_id,
+                                       duration=step.duration))
 
         # Create per machine output lines.
         output = ''
