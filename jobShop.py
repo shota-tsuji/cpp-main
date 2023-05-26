@@ -2,21 +2,38 @@
 import collections
 from ortools.sat.python import cp_model
 
+class RecipeStep:
+
+    def __init__(self, recipe_id, step_id, duration, resource_id, order_number):
+        self.recipe_id = recipe_id
+        self.step_id = step_id
+        self.duration = duration
+        self.resource_id = resource_id
+        self.order_number = order_number
+
+class Resource:
+
+    def __init__(self, resource_id, amount):
+        self.resource_id = resource_id
+        self.amount = amount
+
 
 def main():
-    """Minimal jobshop problem."""
-    # Data.
-    jobs_data = [  # task = (machine_id, processing_time).
-        [(0, 2), (1, 3)],  # Job0
-        [(0, 1), (1, 5)],  # Job1
-        [(0, 1), (1, 3)],
-        [(0, 1), (2, 1)]
+    resources = [
+        Resource(0, 1),
+        Resource(1, 1)
     ]
 
-    machines_count = 1 + max(task[0] for job in jobs_data for task in job)
-    all_machines = range(machines_count)
+    """Minimal jobshop problem."""
+    # Data.
+    recipes_data = [  # task = (machine_id, processing_time).
+        [(0, 1), (1, 4)],  # recipe0
+        [(0, 1), (1, 2)],  # recipe1
+    ]
+
+    all_machines = range(len(resources))
     # Computes horizon dynamically as the sum of all durations.
-    horizon = sum(task[1] for job in jobs_data for task in job)
+    horizon = sum(task[1] for job in recipes_data for task in job)
 
     # Create the model.
     model = cp_model.CpModel()
@@ -32,7 +49,7 @@ def main():
     machine_to_intervals = collections.defaultdict(list)
     machine_1_intervals = []
 
-    for job_id, job in enumerate(jobs_data):
+    for job_id, job in enumerate(recipes_data):
         for task_id, task in enumerate(job):
             machine = task[0]
             duration = task[1]
@@ -48,13 +65,13 @@ def main():
             if machine == 1:
                 machine_1_intervals.append(interval_var)
 
-    # Create and add disjunctive constraints.
-    for machine in all_machines:
-        if machine != 1:
-            model.AddNoOverlap(machine_to_intervals[machine])
+    # disjunctive constraint 0: Each resource use does not overlap if its amount is one.
+    for resource in resources:
+        if resource.amount == 1:
+            model.AddNoOverlap(machine_to_intervals[resource.resource_id])
 
     # Precedences inside a job.
-    for job_id, job in enumerate(jobs_data):
+    for job_id, job in enumerate(recipes_data):
         for task_id in range(len(job) - 1):
             model.Add(all_tasks[job_id, task_id +
                                 1].start >= all_tasks[job_id, task_id].end)
@@ -66,7 +83,7 @@ def main():
     obj_var = model.NewIntVar(0, horizon, 'makespan')
     model.AddMaxEquality(obj_var, [
         all_tasks[job_id, len(job) - 1].end
-        for job_id, job in enumerate(jobs_data)
+        for job_id, job in enumerate(recipes_data)
     ])
     model.Minimize(obj_var)
 
@@ -78,7 +95,7 @@ def main():
         print('Solution:')
         # Create one list of assigned tasks per machine.
         assigned_jobs = collections.defaultdict(list)
-        for job_id, job in enumerate(jobs_data):
+        for job_id, job in enumerate(recipes_data):
             for task_id, task in enumerate(job):
                 machine = task[0]
                 assigned_jobs[machine].append(
