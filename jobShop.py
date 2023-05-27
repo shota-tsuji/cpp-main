@@ -2,6 +2,7 @@
 import collections
 from ortools.sat.python import cp_model
 
+
 class RecipeStep:
 
     def __init__(self, recipe_id, step_id, duration, resource_id, order_number):
@@ -17,11 +18,13 @@ class RecipeStep:
     def __repr__(self):
         return f'RecipeStep: {self.recipe_id}, {self.step_id}, {self.resource_id}, {self.order_number}'
 
+
 class Resource:
 
     def __init__(self, resource_id, amount):
         self.resource_id = resource_id
         self.amount = amount
+
 
 class StepOutput:
 
@@ -35,6 +38,7 @@ class StepOutput:
     def to_string(self):
         end_time = self.start_time + self.duration
         return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}])'
+
 
 def main():
     resources = [
@@ -66,7 +70,8 @@ def main():
             interval_var = model.NewIntervalVar(start_var, step.duration, end_var,
                                                 'interval' + suffix)
             # use as dict
-            task = task_type(start=start_var, end=end_var, interval=interval_var, order=step.order_number, step_id=step.step_id, duration=step.duration, resource_id=step.resource_id)
+            task = task_type(start=start_var, end=end_var, interval=interval_var, order=step.order_number,
+                             step_id=step.step_id, duration=step.duration, resource_id=step.resource_id)
             if recipe_id in all_steps:
                 all_steps[recipe_id].append(task)
             else:
@@ -93,18 +98,20 @@ def main():
     print('  - conflicts: %i' % solver.NumConflicts())
     print('  - wall time: %f s' % solver.WallTime())
 
+
 # Disjunctive constraint 0: Resource capacity
 def set_resource_constraint(model, resources, resource_intervals):
     for resource in resources:
         intervals = resource_intervals[resource.resource_id]
-        if resource.amount == 1: #Each resource use does not overlap if its amount is one.
+        if resource.amount == 1:  # Each resource use does not overlap if its amount is one.
             model.AddNoOverlap(intervals)
-        else: # Capacity of resources used simultaneously
+        else:  # Capacity of resources used simultaneously
             # Each interval requires one resource in its duration.
             demands = [1] * len(intervals)
             model.AddCumulative(intervals, demands, resource.amount)
 
     return model
+
 
 # Disjunctive constraint 1: Sequential recipe process
 def set_step_constraint(model, all_steps):
@@ -117,6 +124,7 @@ def set_step_constraint(model, all_steps):
 
     return model
 
+
 # Disjunctive constraint 2: Total time is at most sum of all recipe process times
 def set_time_constraint(model, horizon, all_steps):
     # Objective value (total time) which will be minimized.
@@ -126,13 +134,14 @@ def set_time_constraint(model, horizon, all_steps):
     recipe_ends = []
     for recipe_id, steps in all_steps.items():
         last_step = sorted(steps, key=lambda step: step.order)[-1]
-        #print(last_step)
+        # print(last_step)
         recipe_ends.append(last_step.end)
 
     model.AddMaxEquality(obj_var, recipe_ends)
     model.Minimize(obj_var)
 
     return model
+
 
 # recipe_lists と variable.start の組み合わせを取得
 def get_step_outputs(solver, all_steps):
@@ -143,6 +152,7 @@ def get_step_outputs(solver, all_steps):
             step_outputs.append(StepOutput(recipe_id, step.step_id, step.duration, step.resource_id, start_time))
 
     return step_outputs
+
 
 if __name__ == '__main__':
     main()
