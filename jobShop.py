@@ -42,12 +42,6 @@ def main():
         Resource(1, 2)
     ]
 
-    """Minimal jobshop problem."""
-    # Data.
-    recipes_data = [  # task = (machine_id, processing_time).
-        [(0, 1), (1, 4)],  # recipe0
-        [(0, 1), (1, 2)],  # recipe1
-    ]
     recipe_lists = [
         [RecipeStep(0, 10, 1, 0, 1), RecipeStep(0, 11, 4, 1, 2)],
         [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)]
@@ -55,13 +49,10 @@ def main():
 
     # Computes horizon dynamically as the sum of all durations.
     horizon = sum(step.duration for recipe in recipe_lists for step in recipe)
-
-    # Create the model.
-    model = cp_model.CpModel()
-
     # Named tuple to store information about created variables.
     task_type = collections.namedtuple('task_type', 'start end interval order step_id duration, resource_id')
-    # Named tuple to manipulate solution information.
+
+    model = cp_model.CpModel()
 
     # Creates job intervals and add to the corresponding machine lists.
     all_steps = {}
@@ -91,8 +82,6 @@ def main():
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
-        print('Solution:')
-        # use as dict
         step_outputs = get_step_outputs(solver, all_steps)
         for step_output in step_outputs:
             print(step_output.to_string())
@@ -101,10 +90,7 @@ def main():
     else:
         print('No solution found.')
 
-    # Statistics.
-    print('\nStatistics')
     print('  - conflicts: %i' % solver.NumConflicts())
-    print('  - branches : %i' % solver.NumBranches())
     print('  - wall time: %f s' % solver.WallTime())
 
 # Disjunctive constraint 0: Resource capacity
