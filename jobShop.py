@@ -92,17 +92,11 @@ def main():
             demands = [1] * len(intervals)
             model.AddCumulative(intervals, demands, resource.amount)
 
-    for recipe_id, steps in all_steps.items():
-        ordered_steps = sorted(steps, key=lambda step: step.order)
-        print(ordered_steps)
-
     # Precedences inside a job.
     for job_id, job in enumerate(recipes_data):
         for task_id in range(len(job) - 1):
             # use as array
             model.Add(all_steps[job_id][task_id + 1].start >= all_steps[job_id][task_id].end)
-
-
 
     # Makespan objective.
     obj_var = model.NewIntVar(0, horizon, 'makespan')
@@ -113,17 +107,6 @@ def main():
         last_step = sorted(steps, key=lambda step: step.order)[-1]
         print(last_step)
         recipe_ends.append(last_step.end)
-    #for recipe in recipe_lists:
-    #    last_step = sorted(recipe, key=lambda step: step.order_number)[-1]
-    #    print(last_step)
-    #    #all_steps[recipe]
-    #    print(f'{last_step.recipe_id}, {last_step.step_id}')
-    #    end = all_steps[last_step.recipe_id][last_step.step_id].end
-    #    print(end)
-    #    recipe_ends.append(end)
-    # use as array
-    #v = [all_steps[recipe_id, len(recipe) - 1].end for recipe_id, recipe in enumerate(recipe_lists)]
-    #print(v)
 
     model.AddMaxEquality(obj_var, recipe_ends)
     model.Minimize(obj_var)
@@ -134,10 +117,8 @@ def main():
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print('Solution:')
-        # recipe_lists と variable.start の組み合わせがとりたい
         # use as dict
-        step_outputs = get_step_outputs(solver, all_steps, recipe_lists)
-        #print(list(map(lambda s: s.to_string(), step_outputs)))
+        step_outputs = get_step_outputs(solver, all_steps)
         for step_output in step_outputs:
             print(step_output.to_string())
 
@@ -151,7 +132,8 @@ def main():
     print('  - branches : %i' % solver.NumBranches())
     print('  - wall time: %f s' % solver.WallTime())
 
-def get_step_outputs(solver, all_steps, recipe_lists):
+# recipe_lists と variable.start の組み合わせを取得
+def get_step_outputs(solver, all_steps):
     step_outputs = []
     for recipe_id, steps in all_steps.items():
         for step in steps:
