@@ -100,16 +100,17 @@ def main():
         for i in range(len(steps) - 1):
             model.Add(steps[i + 1].start >= steps[i].end)
 
-    # Makespan objective.
-    obj_var = model.NewIntVar(0, horizon, 'makespan')
-    # fix on d0 as recipe_id ex. (0, ?) -> (start, end, interval)
-    # レシピごとに一番最後の工程の tuple の end を見ている
+    # Objective value (total time) which will be minimized.
+    obj_var = model.NewIntVar(0, horizon, 'timeline')
+
+    # select end time of last step of recipes
     recipe_ends = []
     for recipe_id, steps in all_steps.items():
         last_step = sorted(steps, key=lambda step: step.order)[-1]
         #print(last_step)
         recipe_ends.append(last_step.end)
 
+    # Disjunctive constraint 2: Total time is at most sum of all recipe process times
     model.AddMaxEquality(obj_var, recipe_ends)
     model.Minimize(obj_var)
 
