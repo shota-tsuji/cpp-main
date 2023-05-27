@@ -18,6 +18,12 @@ class RecipeStep:
     def __repr__(self):
         return f'RecipeStep: {self.recipe_id}, {self.step_id}, {self.resource_id}, {self.order_number}'
 
+class Recipe:
+
+    def __init__(self, recipe_id, steps):
+        self.recipe_id = recipe_id
+        self.steps = steps
+
 
 class Resource:
 
@@ -47,15 +53,15 @@ def main():
     ]
 
     recipe_lists = [
-        [RecipeStep(0, 10, 1, 0, 1), RecipeStep(0, 11, 4, 1, 2)],
-        [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)]
+        Recipe(0, [RecipeStep(0, 10, 1, 0, 1), RecipeStep(0, 11, 4, 1, 2)]),
+        Recipe(1, [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)])
     ]
 
     # Named tuple to store information about created variables.
     task_type = collections.namedtuple('task_type', 'start end interval order step_id duration, resource_id')
 
     # Computes horizon dynamically as the sum of all durations.
-    horizon = sum(step.duration for recipe in recipe_lists for step in recipe)
+    horizon = sum(step.duration for recipe in recipe_lists for step in recipe.steps)
 
     model = cp_model.CpModel()
 
@@ -63,20 +69,19 @@ def main():
     all_steps = {}
     resource_intervals = collections.defaultdict(list)
 
-    for recipe_id, recipe in enumerate(recipe_lists):
-        for step_id, step in enumerate(recipe):
-            suffix = f'_{recipe_id}_{step_id}'
+    for recipe in recipe_lists:
+        for step in recipe.steps:
+            suffix = f'_{recipe.recipe_id}_{step.step_id}'
             start_var = model.NewIntVar(0, horizon, 'start' + suffix)
             end_var = model.NewIntVar(0, horizon, 'end' + suffix)
             interval_var = model.NewIntervalVar(start_var, step.duration, end_var,
                                                 'interval' + suffix)
-            # use as dict
             task = task_type(start=start_var, end=end_var, interval=interval_var, order=step.order_number,
                              step_id=step.step_id, duration=step.duration, resource_id=step.resource_id)
-            if recipe_id in all_steps:
-                all_steps[recipe_id].append(task)
+            if recipe.recipe_id in all_steps:
+                all_steps[recipe.recipe_id].append(task)
             else:
-                all_steps[recipe_id] = [task]
+                all_steps[recipe.recipe_id] = [task]
 
             resource_intervals[step.resource_id].append(interval_var)
 
