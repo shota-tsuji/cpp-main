@@ -102,17 +102,7 @@ def main():
 
     # Objective value (total time) which will be minimized.
     obj_var = model.NewIntVar(0, horizon, 'timeline')
-
-    # select end time of last step of recipes
-    recipe_ends = []
-    for recipe_id, steps in all_steps.items():
-        last_step = sorted(steps, key=lambda step: step.order)[-1]
-        #print(last_step)
-        recipe_ends.append(last_step.end)
-
-    # Disjunctive constraint 2: Total time is at most sum of all recipe process times
-    model.AddMaxEquality(obj_var, recipe_ends)
-    model.Minimize(obj_var)
+    model = set_time_constraint(model, obj_var, all_steps)
 
     # Creates the solver and solve.
     solver = cp_model.CpSolver()
@@ -134,6 +124,21 @@ def main():
     print('  - conflicts: %i' % solver.NumConflicts())
     print('  - branches : %i' % solver.NumBranches())
     print('  - wall time: %f s' % solver.WallTime())
+
+def set_time_constraint(model, obj_var, all_steps):
+
+    # select end time of last step of recipes
+    recipe_ends = []
+    for recipe_id, steps in all_steps.items():
+        last_step = sorted(steps, key=lambda step: step.order)[-1]
+        #print(last_step)
+        recipe_ends.append(last_step.end)
+
+    # Disjunctive constraint 2: Total time is at most sum of all recipe process times
+    model.AddMaxEquality(obj_var, recipe_ends)
+    model.Minimize(obj_var)
+
+    return model
 
 # recipe_lists と variable.start の組み合わせを取得
 def get_step_outputs(solver, all_steps):
