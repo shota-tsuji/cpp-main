@@ -51,10 +51,11 @@ def main():
         [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)]
     ]
 
-    # Computes horizon dynamically as the sum of all durations.
-    horizon = sum(step.duration for recipe in recipe_lists for step in recipe)
     # Named tuple to store information about created variables.
     task_type = collections.namedtuple('task_type', 'start end interval order step_id duration, resource_id')
+
+    # Computes horizon dynamically as the sum of all durations.
+    horizon = sum(step.duration for recipe in recipe_lists for step in recipe)
 
     model = cp_model.CpModel()
 
@@ -76,6 +77,7 @@ def main():
                 all_steps[recipe_id].append(task)
             else:
                 all_steps[recipe_id] = [task]
+
             resource_intervals[step.resource_id].append(interval_var)
 
     model = set_resource_constraint(model, resources, resource_intervals)
