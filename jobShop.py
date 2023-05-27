@@ -7,21 +7,21 @@ class RecipeStep:
 
     def __init__(self, recipe_id, step_id, duration, resource_id, order_number):
         self.recipe_id = recipe_id
-        self.step_id = step_id
+        self.id = step_id
         self.duration = duration
         self.resource_id = resource_id
         self.order_number = order_number
 
     def __str__(self):
-        return f'RecipeStep: {self.recipe_id}, {self.step_id}, {self.resource_id}, {self.order_number}'
+        return f'RecipeStep: {self.recipe_id}, {self.id}, {self.resource_id}, {self.order_number}'
 
     def __repr__(self):
-        return f'RecipeStep: {self.recipe_id}, {self.step_id}, {self.resource_id}, {self.order_number}'
+        return f'RecipeStep: {self.recipe_id}, {self.id}, {self.resource_id}, {self.order_number}'
 
 class Recipe:
 
     def __init__(self, recipe_id, steps):
-        self.recipe_id = recipe_id
+        self.id = recipe_id
         self.steps = steps
 
 
@@ -71,17 +71,19 @@ def main():
 
     for recipe in recipe_lists:
         for step in recipe.steps:
-            suffix = f'_{recipe.recipe_id}_{step.step_id}'
+            suffix = f'_{recipe.id}_{step.id}'
+
             start_var = model.NewIntVar(0, horizon, 'start' + suffix)
             end_var = model.NewIntVar(0, horizon, 'end' + suffix)
             interval_var = model.NewIntervalVar(start_var, step.duration, end_var,
                                                 'interval' + suffix)
             task = task_type(start=start_var, end=end_var, interval=interval_var, order=step.order_number,
-                             step_id=step.step_id, duration=step.duration, resource_id=step.resource_id)
-            if recipe.recipe_id in all_steps:
-                all_steps[recipe.recipe_id].append(task)
+                             step_id=step.id, duration=step.duration, resource_id=step.resource_id)
+
+            if recipe.id in all_steps:
+                all_steps[recipe.id].append(task)
             else:
-                all_steps[recipe.recipe_id] = [task]
+                all_steps[recipe.id] = [task]
 
             resource_intervals[step.resource_id].append(interval_var)
 
