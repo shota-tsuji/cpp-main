@@ -45,11 +45,11 @@ class StepOutput:
 
     def __str__(self):
         end_time = self.start_time + self.duration
-        return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}], tli={self.time_line_index})'
+        return f'(resource={self.resource_id}, start={self.start_time}, end={end_time}, recipe={self.recipe_id}, step={self.step_id}, tli={self.time_line_index})'
 
     def __repr__(self):
         end_time = self.start_time + self.duration
-        return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}], tli={self.time_line_index})'
+        return f'(resource={self.resource_id}, start={self.start_time}, end={end_time}, recipe={self.recipe_id}, step={self.step_id}, tli={self.time_line_index})'
 
 
 
@@ -61,7 +61,9 @@ def main():
 
     recipe_lists = [
         Recipe(0, [RecipeStep(0, 10, 1, 0, 1), RecipeStep(0, 11, 4, 1, 2)]),
-        Recipe(1, [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)])
+        Recipe(1, [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)]),
+        Recipe(2, [RecipeStep(2, 14, 1, 0, 1), RecipeStep(2, 15, 1, 1, 2)]),
+        Recipe(3, [RecipeStep(3, 18, 2, 0, 1), RecipeStep(3, 19, 2, 1, 2)])
     ]
 
     # Named tuple to store information about created variables.
