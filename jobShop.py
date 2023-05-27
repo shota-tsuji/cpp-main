@@ -43,9 +43,14 @@ class StepOutput:
         self.start_time = start_time
         self.time_line_index = time_line_index
 
-    def to_string(self):
+    def __str__(self):
         end_time = self.start_time + self.duration
-        return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}])'
+        return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}], tli={self.time_line_index})'
+
+    def __repr__(self):
+        end_time = self.start_time + self.duration
+        return f'({self.resource_id}, [{self.start_time}, {end_time}], [{self.recipe_id}, {self.step_id}], tli={self.time_line_index})'
+
 
 
 def main():
@@ -100,7 +105,7 @@ def main():
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         step_outputs = get_step_outputs(solver, all_steps, resources)
         for step_output in step_outputs:
-            print(step_output.to_string())
+            print(step_output)
 
         print(f'Optimal Schedule Length: {solver.ObjectiveValue()}')
     else:
@@ -186,10 +191,32 @@ def get_step_outputs(solver, all_steps, resources):
 
     #print(resources_use)
     for resource in filter(lambda r: r.amount > 1, resources):
-        timelines = []
+        timelines = [None] * resource.amount
+        print(timelines)
+        steps = resources_use[resource.resource_id]
         #resources_use[resource.resource_id].reverse()
-        resources_use[resource.resource_id].sort(key=functools.cmp_to_key(step_cmp))
-        print(resources_use[resource.resource_id])
+        steps.sort(key=functools.cmp_to_key(step_cmp))
+        #print(steps)
+
+        for step in steps:
+            start_time = solver.Value(step.start)
+
+            # loop until current step is scheduled in one of timelines
+            for i, timeline in enumerate(timelines):
+                print(timelines)
+                if timeline is None:
+                    timelines[i] = [step]
+                    step_outputs.append(StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time, i))
+                    break
+                else:
+                    # compare to check if the step is scheduled
+                    print(f'timeline: {timeline[-1].end}')
+                    print(f'step: {step}')
+                    if solver.Value(timeline[-1].end) <= solver.Value(step.start):
+                        timeline.append(step)
+                        step_outputs.append(StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time, i))
+
+        print(timelines)
 
     return step_outputs
 
