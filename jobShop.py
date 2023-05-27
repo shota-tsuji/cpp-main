@@ -92,11 +92,13 @@ def main():
             demands = [1] * len(intervals)
             model.AddCumulative(intervals, demands, resource.amount)
 
-    # Precedences inside a job.
-    for job_id, job in enumerate(recipes_data):
-        for task_id in range(len(job) - 1):
-            # use as array
-            model.Add(all_steps[job_id][task_id + 1].start >= all_steps[job_id][task_id].end)
+    # Disjunctive constraint 1: Sequential recipe process
+    for recipe_id, steps in all_steps.items():
+        steps.sort(key=lambda step: step.order)
+
+        # Next step does not start until current step ends
+        for i in range(len(steps) - 1):
+            model.Add(steps[i + 1].start >= steps[i].end)
 
     # Makespan objective.
     obj_var = model.NewIntVar(0, horizon, 'makespan')
@@ -105,7 +107,7 @@ def main():
     recipe_ends = []
     for recipe_id, steps in all_steps.items():
         last_step = sorted(steps, key=lambda step: step.order)[-1]
-        print(last_step)
+        #print(last_step)
         recipe_ends.append(last_step.end)
 
     model.AddMaxEquality(obj_var, recipe_ends)
