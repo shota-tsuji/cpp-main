@@ -82,15 +82,7 @@ def main():
                 all_steps[recipe_id] = [task]
             resource_intervals[step.resource_id].append(interval_var)
 
-    # Disjunctive constraint 0: Resource capacity
-    for resource in resources:
-        intervals = resource_intervals[resource.resource_id]
-        if resource.amount == 1: #Each resource use does not overlap if its amount is one.
-            model.AddNoOverlap(intervals)
-        else: # Capacity of resources used simultaneously
-            # Each interval requires one resource in its duration.
-            demands = [1] * len(intervals)
-            model.AddCumulative(intervals, demands, resource.amount)
+    model = set_resource_constraint(model, resources, resource_intervals)
 
     # Disjunctive constraint 1: Sequential recipe process
     for recipe_id, steps in all_steps.items():
@@ -125,6 +117,20 @@ def main():
     print('  - branches : %i' % solver.NumBranches())
     print('  - wall time: %f s' % solver.WallTime())
 
+# Disjunctive constraint 0: Resource capacity
+def set_resource_constraint(model, resources, resource_intervals):
+    for resource in resources:
+        intervals = resource_intervals[resource.resource_id]
+        if resource.amount == 1: #Each resource use does not overlap if its amount is one.
+            model.AddNoOverlap(intervals)
+        else: # Capacity of resources used simultaneously
+            # Each interval requires one resource in its duration.
+            demands = [1] * len(intervals)
+            model.AddCumulative(intervals, demands, resource.amount)
+
+    return model
+
+# Disjunctive constraint 2: Total time is at most sum of all recipe process times
 def set_time_constraint(model, obj_var, all_steps):
 
     # select end time of last step of recipes
@@ -134,7 +140,6 @@ def set_time_constraint(model, obj_var, all_steps):
         #print(last_step)
         recipe_ends.append(last_step.end)
 
-    # Disjunctive constraint 2: Total time is at most sum of all recipe process times
     model.AddMaxEquality(obj_var, recipe_ends)
     model.Minimize(obj_var)
 
