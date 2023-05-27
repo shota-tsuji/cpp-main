@@ -1,6 +1,7 @@
 """Minimal jobshop example."""
 import collections
 from ortools.sat.python import cp_model
+import functools
 
 
 class RecipeStep:
@@ -34,12 +35,13 @@ class Resource:
 
 class StepOutput:
 
-    def __init__(self, recipe_id, step_id, duration, resource_id, start_time):
+    def __init__(self, recipe_id, step_id, duration, resource_id, start_time, time_line_index):
         self.recipe_id = recipe_id
         self.step_id = step_id
         self.duration = duration
         self.resource_id = resource_id
         self.start_time = start_time
+        self.time_line_index = time_line_index
 
     def to_string(self):
         end_time = self.start_time + self.duration
@@ -58,7 +60,7 @@ def main():
     ]
 
     # Named tuple to store information about created variables.
-    task_type = collections.namedtuple('task_type', 'start end interval order step_id duration, resource_id')
+    task_type = collections.namedtuple('task_type', 'start end interval order step_id duration, resource_id, recipe_id')
 
     # Computes horizon dynamically as the sum of all durations.
     horizon = sum(step.duration for recipe in recipe_lists for step in recipe.steps)
@@ -78,7 +80,7 @@ def main():
             interval_var = model.NewIntervalVar(start_var, step.duration, end_var,
                                                 'interval' + suffix)
             task = task_type(start=start_var, end=end_var, interval=interval_var, order=step.order_number,
-                             step_id=step.id, duration=step.duration, resource_id=step.resource_id)
+                             step_id=step.id, duration=step.duration, resource_id=step.resource_id, recipe_id=step.recipe_id)
 
             if recipe.id in all_steps:
                 all_steps[recipe.id].append(task)
@@ -96,7 +98,7 @@ def main():
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
-        step_outputs = get_step_outputs(solver, all_steps)
+        step_outputs = get_step_outputs(solver, all_steps, resources)
         for step_output in step_outputs:
             print(step_output.to_string())
 
@@ -153,12 +155,41 @@ def set_time_constraint(model, horizon, all_steps):
 
 
 # recipe_lists と variable.start の組み合わせを取得
-def get_step_outputs(solver, all_steps):
+def get_step_outputs(solver, all_steps, resources):
     step_outputs = []
-    for recipe_id, steps in all_steps.items():
+    resources_use = {}
+    resources_dict = {}
+    for resource in resources:
+        resources_use[resource.resource_id] = []
+        resources_dict[resource.resource_id] = resource.amount
+
+    for steps in all_steps.values():
         for step in steps:
+            if resources_dict[step.resource_id] > 1:
+                resources_use[step.resource_id].append(step)
+                continue
             start_time = solver.Value(step.start)
-            step_outputs.append(StepOutput(recipe_id, step.step_id, step.duration, step.resource_id, start_time))
+            step_outputs.append(StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time, 0))
+
+    def step_cmp(a, b):
+        if solver.Value(a.start) < solver.Value(b.start):
+            return -1
+        elif solver.Value(a.start) == solver.Value(b.start):
+            if solver.Value(a.end) < solver.Value(b.end):
+                return -1
+            elif solver.Value(a.end) > solver.Value(b.end):
+                return 1
+            else:
+                return 0
+        else:
+            return 1
+
+    #print(resources_use)
+    for resource in filter(lambda r: r.amount > 1, resources):
+        timelines = []
+        #resources_use[resource.resource_id].reverse()
+        resources_use[resource.resource_id].sort(key=functools.cmp_to_key(step_cmp))
+        print(resources_use[resource.resource_id])
 
     return step_outputs
 
