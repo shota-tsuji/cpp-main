@@ -83,18 +83,8 @@ def main():
             resource_intervals[step.resource_id].append(interval_var)
 
     model = set_resource_constraint(model, resources, resource_intervals)
-
-    # Disjunctive constraint 1: Sequential recipe process
-    for recipe_id, steps in all_steps.items():
-        steps.sort(key=lambda step: step.order)
-
-        # Next step does not start until current step ends
-        for i in range(len(steps) - 1):
-            model.Add(steps[i + 1].start >= steps[i].end)
-
-    # Objective value (total time) which will be minimized.
-    obj_var = model.NewIntVar(0, horizon, 'timeline')
-    model = set_time_constraint(model, obj_var, all_steps)
+    model = set_step_constraint(model, all_steps)
+    model = set_time_constraint(model, horizon, all_steps)
 
     # Creates the solver and solve.
     solver = cp_model.CpSolver()
@@ -130,8 +120,21 @@ def set_resource_constraint(model, resources, resource_intervals):
 
     return model
 
+# Disjunctive constraint 1: Sequential recipe process
+def set_step_constraint(model, all_steps):
+    for recipe_id, steps in all_steps.items():
+        steps.sort(key=lambda step: step.order)
+
+        # Next step does not start until current step ends
+        for i in range(len(steps) - 1):
+            model.Add(steps[i + 1].start >= steps[i].end)
+
+    return model
+
 # Disjunctive constraint 2: Total time is at most sum of all recipe process times
-def set_time_constraint(model, obj_var, all_steps):
+def set_time_constraint(model, horizon, all_steps):
+    # Objective value (total time) which will be minimized.
+    obj_var = model.NewIntVar(0, horizon, 'timeline')
 
     # select end time of last step of recipes
     recipe_ends = []
