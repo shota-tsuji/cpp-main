@@ -59,4 +59,5 @@ message StepOutput {
 
 message ProcessReply {
   repeated StepOutput steps = 1;
+  repeated ResourceInfo resourceInfos = 2;
 }

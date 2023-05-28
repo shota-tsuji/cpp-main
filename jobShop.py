@@ -19,10 +19,11 @@ class Greeter(helloworld_pb2_grpc.GreeterServicer):
         recipe_lists = list(map(toRecipeData, request.recipes))
         resources = list(map(toResourceData, request.resources))
 
-        stepResults = main.main(recipe_lists, resources)
+        stepResults, resource_infos = main.main(recipe_lists, resources)
         steps = map(toStepOutput, stepResults)
+        grpc_resource_infos = map(toGrpcResourceInfo, resource_infos)
 
-        return helloworld_pb2.ProcessReply(steps=steps)
+        return helloworld_pb2.ProcessReply(steps=steps, resourceInfos=grpc_resource_infos)
 
 
 def toResourceData(grpc_resource):
@@ -37,6 +38,9 @@ def toStepData(grpc_step):
 def toStepOutput(step):
     return helloworld_pb2.StepOutput(recipe_id=step.recipe_id, step_id=step.recipe_id, resource_id=step.resource_id, duration=step.duration, start_time=step.start_time,
                                            time_line_index=step.time_line_index)
+
+def toGrpcResourceInfo(resource_info):
+    return helloworld_pb2.ResourceInfo(id=resource_info.id, amount=resource_info.amount, isUsedMultipleResources=resource_info.isUsedMultipleResources, used_resources_count=resource_info.used_resources_count)
 
 def serve():
     port = '50051'

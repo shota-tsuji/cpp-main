@@ -25,6 +25,12 @@ class Recipe:
         self.id = recipe_id
         self.steps = steps
 
+    def __str__(self):
+        return f'Recipe: {self.id}, {self.steps}'
+
+    def __repr__(self):
+        return f'Recipe: {self.id}, {self.steps}'
+
 
 class Resource:
 
@@ -51,6 +57,14 @@ class StepOutput:
         end_time = self.start_time + self.duration
         return f'(resource={self.resource_id}, start={self.start_time}, end={end_time}, recipe={self.recipe_id}, step={self.step_id}, tli={self.time_line_index})'
 
+class ResourceInfo:
+
+    def __init__(self, id, amount, is_used_multiple_resources, used_resources_count):
+        self.id = id
+        self.amount = amount
+        self.isUsedMultipleResources = is_used_multiple_resources
+        self.used_resources_count = used_resources_count
+
 
 def main(recipe_lists, resources):
 
@@ -67,6 +81,9 @@ def main(recipe_lists, resources):
     resource_intervals = collections.defaultdict(list)
 
     for recipe in recipe_lists:
+        print("-------------------------")
+        print(recipe)
+        print("-------------------------")
         for step in recipe.steps:
             suffix = f'_{recipe.id}_{step.id}'
 
@@ -97,12 +114,22 @@ def main(recipe_lists, resources):
     print('  - wall time: %f s' % solver.WallTime())
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+        print(f'Optimal Schedule Length: {solver.ObjectiveValue()}')
         step_outputs = get_step_outputs(solver, all_steps, resources)
         for step_output in step_outputs:
             print(step_output)
 
-        print(f'Optimal Schedule Length: {solver.ObjectiveValue()}')
-        return step_outputs
+        resource_infos = []
+        for resource in resources:
+            filtered_list = filter(lambda s: s.resource_id == resource.resource_id, step_outputs)
+            used_resources_count = 1 + max(list(map(lambda s: s.time_line_index, filtered_list)))
+            print(f'used_resources_count={used_resources_count}')
+            if used_resources_count > 1:
+                resource_infos.append(ResourceInfo(resource.resource_id, resource.amount, True, used_resources_count))
+            else:
+                resource_infos.append(ResourceInfo(resource.resource_id, resource.amount, False, used_resources_count))
+
+        return step_outputs, resource_infos
     else:
         print('No solution found.')
         return 1
@@ -162,8 +189,8 @@ def get_step_outputs(solver, all_steps, resources):
         resources_use[resource.resource_id] = []
         resources_dict[resource.resource_id] = resource.amount
 
-    print(resources_dict)
 
+    print(all_steps.keys())
     for steps in all_steps.values():
         for step in steps:
             if resources_dict[step.resource_id] > 1:
@@ -179,17 +206,17 @@ def get_step_outputs(solver, all_steps, resources):
         elif solver.Value(a.start) == solver.Value(b.start):
             if solver.Value(a.end) < solver.Value(b.end):
                 return -1
-            elif solver.Value(a.end) > solver.Value(b.end):
-                return 1
+            elif solver.Value(a.end) > solver.Value(b.end):return 1
             else:
                 return 0
         else:
             return 1
 
+    print(f'step_outputs={step_outputs}')
     # print(resources_use)
     for resource in filter(lambda r: r.amount > 1, resources):
         timelines = [None] * resource.amount
-        print(timelines)
+        #print(timelines)
         steps = resources_use[resource.resource_id]
         # resources_use[resource.resource_id].reverse()
         steps.sort(key=functools.cmp_to_key(step_cmp))
@@ -200,7 +227,7 @@ def get_step_outputs(solver, all_steps, resources):
 
             # loop until current step is scheduled in one of timelines
             for i, timeline in enumerate(timelines):
-                print(timelines)
+                #print(timelines)
                 if timeline is None:
                     timelines[i] = [step]
                     step_outputs.append(
@@ -215,6 +242,6 @@ def get_step_outputs(solver, all_steps, resources):
                         step_outputs.append(
                             StepOutput(step.recipe_id, step.step_id, step.duration, step.resource_id, start_time, i))
 
-        print(timelines)
+    print(f'step_outputs={step_outputs}')
 
     return step_outputs
