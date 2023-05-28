@@ -20,6 +20,7 @@ class Greeter(helloworld_pb2_grpc.GreeterServicer):
         resources = list(map(toResourceData, request.resources))
 
         stepResults, resource_infos = main.main(recipe_lists, resources)
+        print(stepResults)
         steps = map(toStepOutput, stepResults)
         grpc_resource_infos = map(toGrpcResourceInfo, resource_infos)
 
@@ -36,7 +37,7 @@ def toStepData(grpc_step):
     return main.RecipeStep(grpc_step.recipe_id, grpc_step.id, grpc_step.duration, grpc_step.resource_id, grpc_step.order_number)
 
 def toStepOutput(step):
-    return helloworld_pb2.StepOutput(recipe_id=step.recipe_id, step_id=step.recipe_id, resource_id=step.resource_id, duration=step.duration, start_time=step.start_time,
+    return helloworld_pb2.StepOutput(recipe_id=step.recipe_id, step_id=step.step_id, resource_id=step.resource_id, duration=step.duration, start_time=step.start_time,
                                            time_line_index=step.time_line_index)
 
 def toGrpcResourceInfo(resource_info):
