@@ -3,6 +3,26 @@ import collections
 from ortools.sat.python import cp_model
 import functools
 
+from concurrent import futures
+import logging
+
+import grpc
+import helloworld_pb2
+import helloworld_pb2_grpc
+
+
+class Greeter(helloworld_pb2_grpc.GreeterServicer):
+
+    def SayHello(self, request, context):
+        print(f'got a request: {request.name}, {request.state}')
+        titles = ["aiko0", "aiko1", "aiko bon"]
+        resource_infos = [helloworld_pb2.ResourceInfo(id=1, amount=2, isUsedMultiple=True)]
+        return helloworld_pb2.HelloReply(message='Hello, %s!' % request.name, status=2000, titles=titles, resourceInfos=resource_infos)
+
+    def Process(self, request, context):
+        steps = [helloworld_pb2.StepOutput(recipe_id="0", step_id="0", resource_id=1, duration=1, start_time=1, time_line_index=1)]
+        return helloworld_pb2.ProcessReply(steps=steps)
+
 
 class RecipeStep:
 
@@ -222,6 +242,17 @@ def get_step_outputs(solver, all_steps, resources):
 
     return step_outputs
 
+def serve():
+    port = '50051'
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    helloworld_pb2_grpc.add_GreeterServicer_to_server(Greeter(), server)
+    server.add_insecure_port('[::]:' + port)
+    server.start()
+    print("Server started, listening on " + port)
+    server.wait_for_termination()
+
 
 if __name__ == '__main__':
+    logging.basicConfig()
     main()
+    serve()

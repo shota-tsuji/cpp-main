@@ -1,0 +1,62 @@
+syntax = "proto3";
+package helloworld;
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloReply);
+  rpc Process (ProcessRequest) returns (ProcessReply);
+}
+
+message HelloRequest {
+  string name = 1;
+  int32 state = 2;
+}
+
+message HelloReply {
+  string message = 1;
+  int32 status = 2;
+  repeated string titles = 3;
+  repeated ResourceInfo resourceInfos = 4;
+}
+
+message ResourceInfo {
+  int32 id = 1;
+  int32 amount = 2;
+  bool isUsedMultipleResources = 3;
+  int32 used_resources_count = 4;
+}
+
+message Step {
+  string id = 1;
+  string recipe_id = 2;
+  uint64 resource_id = 3;
+  int32 duration = 4;
+  uint32 order_number = 5;
+}
+
+message Recipe {
+  string id = 1;
+  repeated Step steps = 2;
+}
+
+message Resource {
+  uint64 id = 1;
+  int32 amount = 2;
+}
+
+message ProcessRequest {
+  repeated Recipe recipes = 1;
+  repeated Resource resources = 2;
+}
+
+message StepOutput {
+  string recipe_id = 2;
+  string step_id = 1;
+  uint64 resource_id = 3;
+  int32 duration = 4;
+  int32 start_time = 5;
+  int32 time_line_index = 6;
+}
+
+message ProcessReply {
+  repeated StepOutput steps = 1;
+}
