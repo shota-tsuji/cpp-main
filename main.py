@@ -162,6 +162,8 @@ def get_step_outputs(solver, all_steps, resources):
         resources_use[resource.resource_id] = []
         resources_dict[resource.resource_id] = resource.amount
 
+    print(resources_dict)
+
     for steps in all_steps.values():
         for step in steps:
             if resources_dict[step.resource_id] > 1:
