@@ -16,7 +16,20 @@ class Greeter(helloworld_pb2_grpc.GreeterServicer):
                                          resourceInfos=resource_infos)
 
     def Process(self, request, context):
-        stepResults = main.main()
+        recipe_lists = [
+            main.Recipe(0, [main.RecipeStep(0, 10, 1, 0, 1), main.RecipeStep(0, 11, 4, 1, 2)]),
+            main.Recipe(1, [main.RecipeStep(1, 12, 1, 0, 1), main.RecipeStep(1, 13, 2, 1, 2)]),
+            main.Recipe(2, [main.RecipeStep(2, 14, 1, 0, 1), main.RecipeStep(2, 15, 1, 1, 2)]),
+            main.Recipe(3, [main.RecipeStep(3, 18, 2, 0, 1), main.RecipeStep(3, 19, 2, 1, 2)])
+        ]
+
+        resources = [
+            main.Resource(0, 1),
+            main.Resource(1, 2)
+        ]
+        print(request.recipes)
+        print(request.resources)
+        stepResults = main.main(recipe_lists, resources)
         #steps = [helloworld_pb2.StepOutput(recipe_id="0", step_id="0", resource_id=1, duration=1, start_time=1, time_line_index=1)]
 
         steps = map(toStepOutput, stepResults)

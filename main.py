@@ -52,18 +52,7 @@ class StepOutput:
         return f'(resource={self.resource_id}, start={self.start_time}, end={end_time}, recipe={self.recipe_id}, step={self.step_id}, tli={self.time_line_index})'
 
 
-def main():
-    resources = [
-        Resource(0, 1),
-        Resource(1, 2)
-    ]
-
-    recipe_lists = [
-        Recipe(0, [RecipeStep(0, 10, 1, 0, 1), RecipeStep(0, 11, 4, 1, 2)]),
-        Recipe(1, [RecipeStep(1, 12, 1, 0, 1), RecipeStep(1, 13, 2, 1, 2)]),
-        Recipe(2, [RecipeStep(2, 14, 1, 0, 1), RecipeStep(2, 15, 1, 1, 2)]),
-        Recipe(3, [RecipeStep(3, 18, 2, 0, 1), RecipeStep(3, 19, 2, 1, 2)])
-    ]
+def main(recipe_lists, resources):
 
     # Named tuple to store information about created variables.
     task_type = collections.namedtuple('task_type', 'start end interval order step_id duration, resource_id, recipe_id')
